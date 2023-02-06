@@ -1,0 +1,162 @@
+no1 = readraw("resources/data/images/Pepper_noisy1.raw", 240, 400, false);
+no2 = readraw("resources/data/images/Pepper_noisy2.raw", 240, 400, false);
+pepper = readraw("resources/data/images/Pepper.raw", 240, 400, false);
+
+
+%padded = pad_img(myimg);
+
+%per instructions use open source
+red_hist = get_grey_buckets(no1(:,:,1));
+grn_hist = get_grey_buckets(no1(:,:,2));
+blu_hist = get_grey_buckets(no1(:,:,3));
+
+%plot(red_hist);
+%plot(grn_hist);
+%plot(blu_hist);
+
+%rdiff = abs(pepper(:,:,1) - no1(:,:,1));
+%gdiff = abs(pepper(:,:,2) - no1(:,:,2));
+%bdiff = abs(pepper(:,:,3) - no1(:,:,3));
+%imshow(rdiff/255)
+%imshow(gdiff/255)
+%imshow(bdiff/255)
+
+%rdiff_hist = get_grey_buckets(rdiff);
+%gdiff_hist = get_grey_buckets(gdiff);
+%bdiff_hist = get_grey_buckets(bdiff);
+%plot(rdiff_hist);
+%plot(gdiff_hist);
+%plot(bdiff_hist);
+
+%writtenmyimg = writeraw(nlm_img, "nlm_dn_gray_pepper.png", false);
+%imshow(nlm_img/255)
+
+%r = median_denoise(no1(:,:,1));
+%g = bilateral_denoise(no1(:,:,2));
+%b = bilateral_denoise(no1(:,:,3));
+
+%rgb = cat(3,r,g,b);
+%writtenmyimg = writeraw(rgb, "my_dn.png", false);
+%imshow(rgb/255)
+
+
+
+
+rpadded2 = padimg_fn(no2(:,:,1));
+gpadded2 = padimg_fn(no2(:,:,2));
+bpadded2 = padimg_fn(no2(:,:,3));
+
+rmd_img = mean_denoise(rpadded2);
+gmd_img = mean_denoise(gpadded2);
+bmd_img = mean_denoise(bpadded2);
+
+rmd_img = unpadimg_fn(rmd_img);
+gmd_img = unpadimg_fn(gmd_img);
+bmd_img = unpadimg_fn(bmd_img);
+
+rv = calc_psnr(pepper(:,:,1), rmd_img);
+gv = calc_psnr(pepper(:,:,2), gmd_img);
+bv = calc_psnr(pepper(:,:,3), bmd_img);
+
+md_img = cat(3, rmd_img, gmd_img, bmd_img);
+imshow(md_img/255)
+rv
+gv
+bv
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+hsv2 = rgb2hsv(no2/255);
+hpadded2 = padimg_fn(hsv2(:,:,1));
+%spadded2 = padimg_fn(hsv2(:,:,2)*255);
+%vpadded2 = padimg_fn(hsv2(:,:,3)*255);
+
+hmd_img = fix(mean_denoise(rpadded2));
+%smd_img = fix(mean_denoise(spadded2));
+%vmd_img = fix(mean_denoise(vpadded2));
+
+hmd_img = unpadimg_fn(hmd_img);
+%smd_img = unpadimg_fn(smd_img);
+%vmd_img = unpadimg_fn(vmd_img);
+
+hsv_img = cat(3, hmd_img/255, hsv2(:,:,2), hsv2(:,:,3));
+hsv_rgb_img = hsv2rgb(hsv_img);
+
+hrv = calc_psnr(pepper(:,:,1), hmd_img);
+%svg = calc_psnr(pepper(:,:,2), smd_img);
+%vvb = calc_psnr(pepper(:,:,3), vmd_img);
+imshow(hsv_rgb_img)
+
+%test = rgb2hsv(no2/255);
+%imshow(hsv2rgb(test))
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+hsv2 = rgb2hsv(no2/255);
+hpadded2 = padimg_fn(hsv2(:,:,1));
+
+hmd_img = angle_mean_denoise(rpadded2);
+
+hmd_img = unpadimg_fn(hmd_img);
+
+hsv_img = cat(3, hmd_img, hsv2(:,:,2), hsv2(:,:,3));
+hsv_rgb_img = hsv2rgb(hsv_img);
+
+rhsv_ps = calc_psnr(pepper(:,:,1), hsv_rgb_img(:,:,1))
+ghsv_ps = calc_psnr(pepper(:,:,2), hsv_rgb_img(:,:,2))
+bhsv_ps = calc_psnr(pepper(:,:,3), hsv_rgb_img(:,:,3))
+
+hrv = calc_psnr(pepper(:,:,1), hmd_img);
+imshow(hsv_rgb_img)
+
+function dn_img = mean_denoise(myimg)
+    k_size = 1;
+    pad_size = 1;
+    n_pix_in_k = ((1+(2*k_size))*(1+(2*k_size)));
+    dn_img = zeros(size(myimg,1),size(myimg,2));
+
+    for row = 1+pad_size:size(myimg,1)-pad_size
+        for col = 1+pad_size:size(myimg,2)-pad_size
+            x = myimg(row-k_size:row+k_size, col-k_size:col+k_size);
+            k_mean = mean(x,'all');
+            dn_img(row, col) = k_mean;
+        end
+    end     
+end
+
+function dn_img = median_denoise(myimg)
+    k_size = 1;
+    pad_size = 1;
+    n_pix_in_k = ((1+(2*k_size))*(1+(2*k_size)));
+    dn_img = zeros(size(myimg,1),size(myimg,2));
+
+    for row = 1+pad_size:size(myimg,1)-pad_size
+        for col = 1+pad_size:size(myimg,2)-pad_size
+            x = myimg(row-k_size:row+k_size, col-k_size:col+k_size);
+            k_median = median(x,'all');
+            dn_img(row, col) = k_median;
+        end
+    end     
+end
+
+function dn_img = angle_mean_denoise(myimg)
+    k_size = 1;
+    pad_size = 1;
+    n_pix_in_k = ((1+(2*k_size))*(1+(2*k_size)));
+    dn_img = zeros(size(myimg,1),size(myimg,2));
+
+    for row = 1+pad_size:size(myimg,1)-pad_size
+        for col = 1+pad_size:size(myimg,2)-pad_size
+            x = myimg(row-k_size:row+k_size, col-k_size:col+k_size);
+            x = deg2rad((x/255) * 360);
+            xsin = sin(x);
+            xcos = cos(x);
+            ang = sum(xsin, 'all') / sum(xcos, 'all');
+            ang = atan(ang);
+            ang = mod(rad2deg(ang)+360, 360);
+%rad2deg(-1.9764)
+            dn_img(row, col) = ang/360;
+        end
+    end     
+end
+
